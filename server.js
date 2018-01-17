@@ -1,17 +1,11 @@
-var express 		= require('express');
+var express 		    = require('express');
 var app             = express();
 var mongoose        = require('mongoose');
 var bodyParser      = require('body-parser');
-var ObjectId  		= require('mongoose').Types.ObjectId;
-var Detail      	= require('./model/detail');
+var ObjectId  		  = require('mongoose').Types.ObjectId;
 
-var Contact        = require('./model/contact');
-
-
-
-var request = require('request');
-
-
+var Contact         = require('./model/contact');
+var request         = require('request');
 
 
 // parse application/x-www-form-urlencoded 
@@ -22,64 +16,6 @@ app.use(bodyParser.json())
 
 //connect mongodb
 mongoose.connect('mongodb://localhost/test');
-
-
-//first CREATE API
-app.post('/details', function (req, res) {
-
-	var data = req.body;
-	data.status = 1;
-	var detaildata = new Detail (data);
-	detaildata.save(function(err,data){
-		if(err){
-			return res.json({message : "error"})
-		}
-	
-		return res.json({success : true, message : "User added successfully",data : data});
-	});
-})
-
-
-//First READ API
-app.get('/read', function (req, res) {
-    Detail.find({}, function(err,data){
-
-    	if(err){
-        	return res.json({success : false , message : err + "Error while Update"});
-    	}
-
-    	return  res.json({success : true , message : "Team listed successfully",data:data});
-	}); 
-
-})
-
-//First update API
-app.post('/update', function (req, res) {
-	var detaildata = req.body;
-
-    Detail.update({_id : ObjectId(detaildata._id)},detaildata, function(err,data){
-
-        if(err){
-            return res.json({success : false , message : err + "Error while Update"});
-        }
-
-        return  res.json({success : true , message : "Team Updated successfully",data:data ,detaildata : detaildata});
-    }); 
-});
-
-//First delete API
-app.delete('/delete', function (req, res) {
-	Detail.remove( { _id: ObjectId("594ba093f4684519241bd04d") }, { status:1 } )
-	res.json('data deleted successfully');
-
-});
-
-
-
-
-
-
-
 
 var common = function(req, res, next) {
 
@@ -102,6 +38,9 @@ function callback(error, response, body) {
 
 request(options, callback);
 }
+
+
+
 
 
 
@@ -147,7 +86,6 @@ function callback(error, response, body) { //saveone
     return res.json({success : true, message : "User added successfully",data : data});
   });
 
-       return res.json(savedata);
   }
 }
 
@@ -212,7 +150,7 @@ app.get('/locallist', function (req, res) {
       return  res.json({success : true , message : "Local Contacts listed successfully",Count:data.length,data:data});
   }); 
 
-})
+});
 
 //**************************************************  Task 2  *******************************************************************//
 
@@ -249,22 +187,178 @@ app.delete('/deletecontact', function (req, res) {
 
   delId = req.query.recId;
 
-  Contact.remove( { _id: ObjectId(delId) }, { status:1 } )
+  Contact.remove( { _id: ObjectId(delId) } )
   res.json('data deleted successfully');
 
 });
 
 //**************************************************  Task 4  *******************************************************************//
 
+//**************************************************  Task 5  *******************************************************************//
+
+app.get('/listpagination', function (req, res) { 
+
+  var pageno;
+
+  pageno = req.query.pagenum;
+
+
+  if(pageno== undefined){
+
+    var options = {
+      url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011',
+      headers: {
+        'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+        'Accept' : 'application/vnd.moxi-platform+json;version=1',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    };
+  }
+
+  if(pageno !=undefined){
+
+    var options = {
+      url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&' + 'page_number=' + pageno,
+      headers: {
+        'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+        'Accept' : 'application/vnd.moxi-platform+json;version=1',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    };
+  }
+ 
+function callback(error, response, body) {
+  if (!error && response.statusCode == 200) {
+    var data = JSON.parse(body);
+
+
+    var contactlength = data.contacts.length;
+
+      return  res.json({success : true , message : "Remote Contacts listed successfully",parampage:pageno,count:contactlength,data:data});
+  }
+}
+
+request(options, callback);
+
+
+})
+
+//**************************************************  Task 5  *******************************************************************//
+
+//**************************************************    *******************************************************************//
 
 
 
+app.post('/saveall', function (req, res) { //insert many
+  
+  
+for(var i=0;i<2;i++){
+  
+  var pageno = 1;
+
+  
+  var options = {
+      url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&' + 'page_number=' + pageno,
+  headers: {
+    'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+    'Accept' : 'application/vnd.moxi-platform+json;version=1',
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+};
+ 
+function callback(error, response, body) { 
+  if (!error && response.statusCode == 200) {
+    var data = JSON.parse(body);
+
+    var savedata = data.contacts;
+
+   
+
+Contact.insertMany(savedata); //saveall
+
+  }
+
+}
+}
 
 
+// return res.json({success:true,Message:'contacts added successfully'});
 
+// return res.json({success:true,Message:'contacts added successfully',data:savedata});
+
+
+request(options, callback);
+
+
+ 
+});
+
+//**************************************************    *******************************************************************//
+
+app.post('/saveallone', function (req, res) { //insert many
+  
+  
+  function apiRatingCall (input, callback) {
+
+var output = []
+
+for (var i = 0; i < 2; i++) {
+var options = {
+  url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&',
+  headers: {
+    'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+    'Accept' : 'application/vnd.moxi-platform+json;version=1',
+    'Content-Type': 'application/x-www-form-urlencoded'}
+};
+
+ request(options, function (error, response, body) {
+   if (!error && response.statusCode == 200) {
+
+    var info = JSON.parse(body)
+
+        var savedata = data.contacts;
+
+    output.push(savedata) // this is not working as ouput is undefined at this    point
+   }
+ })
+ }
+ setTimeout(function(){
+   callback(output)
+   Contact.insertMany(savedata); //saveall
+
+   // res.json({data:output,count:output.length})
+ },500)
+
+ }
+
+
+ 
+});
+
+//**************************************************    *******************************************************************//
+
+
+app.use(function (req, res, next) {
+
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    // Pass to next layer of middleware
+    next();
+});
 
 
 
 app.listen(3000);
 
-console.log('black silk is running');
+console.log('Test App is running on 3000');
