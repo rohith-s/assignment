@@ -5,7 +5,11 @@ var bodyParser      = require('body-parser');
 var ObjectId  		  = require('mongoose').Types.ObjectId;
 
 var Contact         = require('./model/contact');
+var Export          = require('./model/exportcontact');
+
 var request         = require('request');
+var Q = require('q');
+
 
 
 // parse application/x-www-form-urlencoded 
@@ -17,19 +21,22 @@ app.use(bodyParser.json())
 //connect mongodb
 mongoose.connect('mongodb://localhost/test');
 
+
 var common = function(req, res, next) {
 
-
-  var options = {
-  url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011',
+  var options = { url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011',
   headers: {
     'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
     'Accept' : 'application/vnd.moxi-platform+json;version=1',
     'Content-Type': 'application/x-www-form-urlencoded'
   }
 };
- 
+
+
+
 function callback(error, response, body) {
+  
+ 
   if (!error && response.statusCode == 200) {
     var data = JSON.parse(body);
       return  res.json({success : true , message : "Remote Contacts listed successfully",data:data});
@@ -39,13 +46,7 @@ function callback(error, response, body) {
 request(options, callback);
 }
 
-
-
-
-
-
-app.get('/remotelist', common ); //To read the get API
-
+app.get('/remotelist', common ); //To read the third part API
 
 
 app.post('/createcontact', function (req, res) { //insert one
@@ -91,10 +92,7 @@ function callback(error, response, body) { //saveone
 
 request(options, callback);
 
-
- 
 });
-
 
 
 //**************************************************  Task 1 *******************************************************************//
@@ -141,6 +139,8 @@ request(options, callback);
 
 
 app.get('/locallist', function (req, res) {
+
+
     Contact.find({}, function(err,data){
 
       if(err){
@@ -187,8 +187,7 @@ app.delete('/deletecontact', function (req, res) {
 
   delId = req.query.recId;
 
-  Contact.remove( { _id: ObjectId(delId) } )
-  res.json('data deleted successfully');
+  Contact.remove( { _id: ObjectId(delId) } );
 
 });
 
@@ -196,11 +195,35 @@ app.delete('/deletecontact', function (req, res) {
 
 //**************************************************  Task 5  *******************************************************************//
 
+app.post('/copycontact', function (req, res) {
+    Contact.find({}, function(err,contact){
+
+      var savedata = contact;
+
+      if(err){
+          return res.json({success : false , message : err + "Error while List"});
+      }
+
+      
+      Export.insertMany(savedata); //saveall
+
+      return  res.json({success : true , message : "Local Contacts listed successfully",Count:contact.length,data:contact});
+
+  }); 
+
+});
+
+//**************************************************  Task 5  *******************************************************************//
+
+
+//**************************************************  Task 6  *******************************************************************//
+
 app.get('/listpagination', function (req, res) { 
 
   var pageno;
 
   pageno = req.query.pagenum;
+
 
 
   if(pageno== undefined){
@@ -243,20 +266,20 @@ request(options, callback);
 
 })
 
-//**************************************************  Task 5  *******************************************************************//
-
-//**************************************************    *******************************************************************//
+//**************************************************  Task 6  *******************************************************************//
 
 
 
-app.post('/saveall', function (req, res) { //insert many
-  
-  
-for(var i=0;i<2;i++){
-  
-  var pageno = 1;
 
-  
+app.post('/createcontactallui', function (req, res) { //insert many
+
+
+  var pageno;
+
+  pageno = req.query.pagenum;
+
+
+
   var options = {
       url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&' + 'page_number=' + pageno,
   headers: {
@@ -276,16 +299,10 @@ function callback(error, response, body) {
 
 Contact.insertMany(savedata); //saveall
 
+return res.json({success:true,Message:'contacts added successfully',data:savedata});
   }
 
 }
-}
-
-
-// return res.json({success:true,Message:'contacts added successfully'});
-
-// return res.json({success:true,Message:'contacts added successfully',data:savedata});
-
 
 request(options, callback);
 
@@ -293,14 +310,39 @@ request(options, callback);
  
 });
 
-//**************************************************    *******************************************************************//
+app.get('/dashboard', function(req, res, next) {
+
+    var json = {items : 0};
+    Q.fcall(
+      function(){
+         //first exec
+         json.items+=1;
+      }
+    ).then(
+      function(){
+         //scond exec
+         json.items+=1;
+      }
+    ).then(
+      function(){
+         //third exec
+         json.items+=1;
+      }
+    ).finally(
+      function(){
+        //do this when all the other promises are don
+        res.json(json);
+     }
+     );
+
+});
 
 app.post('/saveallone', function (req, res) { //insert many
   
   
   function apiRatingCall (input, callback) {
 
-var output = []
+var output = [];
 
 for (var i = 0; i < 2; i++) {
 var options = {
@@ -319,11 +361,16 @@ var options = {
         var savedata = data.contacts;
 
     output.push(savedata) // this is not working as ouput is undefined at this    point
+
+    console.log('output' + i + '=' + output)
+
    }
  })
  }
  setTimeout(function(){
    callback(output)
+
+   console.log(output);
    Contact.insertMany(savedata); //saveall
 
    // res.json({data:output,count:output.length})
@@ -331,11 +378,51 @@ var options = {
 
  }
 
+// for(var i=0;i<2;i++){
+  
+//   var pageno = 1;
+
+  
+//   var options = {
+//       url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&' + 'page_number=' + pageno,
+//   headers: {
+//     'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+//     'Accept' : 'application/vnd.moxi-platform+json;version=1',
+//     'Content-Type': 'application/x-www-form-urlencoded'
+//   }
+// };
+ 
+// function callback(error, response, body) { 
+//   if (!error && response.statusCode == 200) {
+//     var data = JSON.parse(body);
+
+//     var savedata = data.contacts;
+
+   
+
+// Contact.insertMany(savedata); //saveall
+
+//   }
+
+// }
+// }
+
+
+// return res.json({success:true,Message:'contacts added successfully'});
+
+// return res.json({success:true,Message:'contacts added successfully',data:savedata});
+
+
+// request(options, callback);
+
 
  
 });
 
 //**************************************************    *******************************************************************//
+
+
+
 
 
 app.use(function (req, res, next) {

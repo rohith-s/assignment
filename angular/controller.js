@@ -12,7 +12,19 @@ var app = angular.module("app", []);
 
             };
 
+            $scope.totalpages = 17;
+
+
+              this.$onInit = function () {
+    $cope.name = 'My Component';
+    console.log($scope.name);
+    this.GetAllData();
+  };
+
+
         $scope.GetAllData = function () {
+            debugger;
+
             debugger;
             $http.get('http://localhost:3000/locallist')
             .success(function (data, status, headers, config) {
@@ -27,6 +39,32 @@ var app = angular.module("app", []);
                 $scope.Details = data.data;
                 this.GetAllData();
             })
+                    };
+
+
+
+
+                    $scope.importDataAll = function () {
+
+
+            debugger;
+
+                var totalpages = $scope.totalpages;
+
+                for(i=1;i<=totalpages;i++){
+
+                var pagevalue = i;
+
+
+            $http.post('http://localhost:3000/createcontactallui?pagenum=' +pagevalue )
+            .success(function (data, status, headers, config) {
+
+            });
+            }
+        
+
+            
+
                     };
 
                     $scope.showadd = function(){
@@ -52,8 +90,11 @@ var app = angular.module("app", []);
                 }
             }
 
-            $http.post('http://localhost:3000/createcontact', data, config)
+            $http.post('http://localhost:3000/addmanualcontacts', data, config)
             .success(function (data, status, headers, config) {
+
+                 
+
 $scope.data = {
                 primary_email_address: "",
                 moxi_works_agent_id:"",
@@ -61,7 +102,13 @@ $scope.data = {
                 last_name:"",
                 home_street_address:"",
 
-            };            })
+            };  
+
+
+
+
+
+                      })
             
         };
 
@@ -74,6 +121,14 @@ $scope.data = {
             .success(function (data, status) {
             })
                     };
+
+
+            $scope.copyData = function () {
+
+                $http.post('http://localhost:3000/copycontact').success(function (data, status, headers, config) { 
+
+                })
+            };
 
 
        
