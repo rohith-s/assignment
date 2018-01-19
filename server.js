@@ -89,7 +89,6 @@ function callback(error, response, body) { //saveone
 
   }
 }
-
 request(options, callback);
 
 });
@@ -151,6 +150,67 @@ app.get('/locallist', function (req, res) {
   }); 
 
 });
+
+var pagecount = 2;
+app.get('/locallistwithpagination' , function(req,res){
+
+    var page        = req.query.page;
+    var aggQuery    = []; 
+    var countAggQuery;
+
+    var match;
+    var project;
+    var cursor;
+    var searchRegex             = new RegExp('^' + escape(req.query.search).replace(/%20/g, " "), 'i');
+    var searchkey = { $match : { $or : [
+        {first_name :  { $regex : searchRegex}}
+    ]}};
+
+    match = {$match : {}};
+
+    aggQuery.push(match);
+
+    aggQuery.push(searchkey);
+
+    countAggQuery = aggQuery.slice(); //copy array to get 
+    
+    aggQuery.push({ $skip: ((page-1)*pagecount)});  //skip pages
+    aggQuery.push({ $limit: pagecount});  //limit records
+
+
+    Contact.aggregate(aggQuery , function(err,data){
+
+        if(err){
+            return res.json({sucess : false , message : err});
+        }
+
+        countAggQuery.push({ $group: { _id: null, count: { $sum: 1 } } });
+
+        Contact.aggregate(countAggQuery,function(err,countdata){
+            var count = 0;
+
+            if(countdata && countdata.length>0){
+                count = countdata[0].count;
+            }
+            return res.json({success : true , message : "contact Listed successfully" , count:data.length, overallcount:count, page:page,data : data});
+        });
+    });
+});
+
+
+app.get('/testaggregate' , function(req,res){
+
+  Contact.aggregate([
+
+    { $match: { status : 1 }}
+
+  ] , function(err,data){
+    if(err){ return res.json(err); }
+    return res.json({message : "SUCCESS",data:data})
+
+  });
+});
+
 
 //**************************************************  Task 2  *******************************************************************//
 
@@ -224,8 +284,6 @@ app.get('/listpagination', function (req, res) {
 
   pageno = req.query.pagenum;
 
-
-
   if(pageno== undefined){
 
     var options = {
@@ -269,8 +327,6 @@ request(options, callback);
 //**************************************************  Task 6  *******************************************************************//
 
 
-
-
 app.post('/createcontactallui', function (req, res) { //insert many
 
 
@@ -310,30 +366,72 @@ request(options, callback);
  
 });
 
-app.get('/dashboard', function(req, res, next) {
 
-    var json = {items : 0};
-    Q.fcall(
-      function(){
-         //first exec
-         json.items+=1;
-      }
-    ).then(
-      function(){
-         //scond exec
-         json.items+=1;
-      }
-    ).then(
-      function(){
-         //third exec
-         json.items+=1;
-      }
-    ).finally(
-      function(){
-        //do this when all the other promises are don
-        res.json(json);
-     }
-     );
+
+  var savedata = [];
+
+var testsync = function(pageno,res){
+
+console.log('pageno' + pageno)
+   var options = {
+      url: 'https://api.moxiworks.com/api/contacts?moxi_works_agent_id=demo_4@moxiworks.com&partner_contact_id=cont_10011&' + 'page_number=' + pageno,
+  headers: {
+    'Authorization': 'Basic  OTJlNWFiNWUtOWM4Zi0xMWU2LTgxMDUtMDA1MDU2OWMxMTlhOjVIZ1RhR1FIMm9PZVQ5Y3hmWHU2Ymd0dA==',
+    'Accept' : 'application/vnd.moxi-platform+json;version=1',
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+};
+ 
+function callback(error, response, body) { 
+    console.log('callback');
+
+  if (!error && response.statusCode == 200) {
+    var data = JSON.parse(body);
+
+    console.log('data length is'+ data.contacts.length)
+
+    var currentpage = data.page_number;
+    var totalpage = data.total_pages;
+
+    console.log('currentpage is '+currentpage);
+
+    savedata = savedata.concat(data.contacts);
+    console.log('savedata length is ' + savedata.length);
+
+
+    if(currentpage != totalpage){
+    testsync((pageno+=1),res);
+    }
+    else{
+      res(null,savedata)
+    }
+
+
+  }
+}
+  request(options, callback);
+}
+
+
+app.post('/createcontactallui2', function (req, res) { //insert many
+
+   savedata = [];
+      console.log('createcontactalluimine');
+
+
+   testsync(1, function(err,listdata){
+
+        console.log('createcontactalluimine -- ended');
+if(!err){
+    Contact.insertMany(savedata); //saveall
+      return res.json({success:true,Message:'contacts added successfully',data:savedata});
+    }
+
+    
+
+
+ 
+});
 
 });
 
@@ -360,7 +458,7 @@ var options = {
 
         var savedata = data.contacts;
 
-    output.push(savedata) // this is not working as ouput is undefined at this    point
+    output.push(savedata) //this is not working as ouput is undefined at this point
 
     console.log('output' + i + '=' + output)
 

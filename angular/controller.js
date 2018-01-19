@@ -13,6 +13,7 @@ var app = angular.module("app", []);
             };
 
             $scope.totalpages = 17;
+            $scope.search = '';
 
 
               this.$onInit = function () {
@@ -24,11 +25,12 @@ var app = angular.module("app", []);
 
         $scope.GetAllData = function () {
             debugger;
-
-            debugger;
-            $http.get('http://localhost:3000/locallist')
+            var pageno = 1;
+            var search = $scope.search;
+            $http.get('http://localhost:3000/locallistwithpagination?page=' +pageno+ '&search=' + search)
             .success(function (data, status, headers, config) {
                 $scope.Details = data.data;
+                
             })
                     };
 
@@ -48,19 +50,18 @@ var app = angular.module("app", []);
 
 
             debugger;
+                // var totalpages = $scope.totalpages;
 
-                var totalpages = $scope.totalpages;
+                // for(i=1;i<=totalpages;i++){
 
-                for(i=1;i<=totalpages;i++){
-
-                var pagevalue = i;
+                // var pagevalue = i;
 
 
-            $http.post('http://localhost:3000/createcontactallui?pagenum=' +pagevalue )
+            $http.post('http://localhost:3000/createcontactallui2')
             .success(function (data, status, headers, config) {
 
             });
-            }
+            // }
         
 
             
